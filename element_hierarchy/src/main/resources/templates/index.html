@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.min.js"
+    integrity="sha384-Atwg2Pkwv9vp0ygtn1JAojH0nYbwNJLPhwyoVbhoPwBhjQPR5VtM2+xf0Uwh9KtT"
+    crossorigin="anonymous"></script>
+
+
+  <title>Show Tree</title>
+</head>
+
+<body class="container">
+  <h1 style="text-align: center" >Object Hierarchy Table</h1>
+  <div class="row">
+    <a href="/excelHandler" style="text-align: right;"> Excel handler</a>
+  </div>
+  <br>
+  <div class="">
+    <h4  >Tìm kiếm theo </h4>
+    <input type="radio" name="choice" id="name" value="name" onchange="radioHandler()"> Ui Control Code &nbsp;
+    &nbsp;&nbsp; &nbsp;
+    <input type="radio" name="choice" id="ctrlCode" value="ctrlCode" onchange="radioHandler()"> Tên &nbsp; &nbsp;
+  </div>
+  <br>
+  <div class="col-sm-5" id="searchCode" hidden >
+    <form action="/getRoot" method="get" class="form-group">
+      Ui Control Code <input type="text" name="uiCtrlCode" class="form-control">
+      <input type="submit" class="btn btn-success " value="Search">
+    </form>
+  </div>
+  <div class="col-sm-5" id="searchName" hidden >
+    <form action="/getRoot" method="post" class="form-group">
+      <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1"
+          data-bs-toggle="dropdown" aria-expanded="false">
+          Chọn màn hình
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+          <th:block th:each="parent : ${parentList}">
+            <li>
+              <a class="dropdown-item" th:href="@{'/getRoot?uiCtrlCode=' + ${parent.uiCtrlCode}}">
+                <span th:text="${parent.uiDesc} + ' - ' + ${parent.uiCtrlName} + ' - ' + ${parent.uiCtrlCode}">
+
+                </span>
+              </a>
+            </li>
+          </th:block>
+
+        </ul>
+      </div>
+
+      <!-- <input type="submit" class="btn btn-success " value="Search"> -->
+    </form>
+  </div>
+
+  <br>
+  <br>
+  <div th:if="${show}">
+    <h3 style="text-align: center;"><span th:text="${root[0].uiDesc} +' - ' + ${root[0].uiCtrlName}"></span></h3>
+    <div class="col-sm-4">
+      <h5>Filter</h5>
+      <input type="text" id="uiCtrlNameInput" class="form-control" onkeydown="handleKeyPress(event)">
+    </div>
+  </div>
+
+  <br>
+
+  <form id="dataForm" action="#" method="post" th:if="${show}" onsubmit="prepareData()">
+    <div class="row">
+      <div style="text-align:right;">
+        <button th:if="${!isInserted}" type="submit" onclick="setAction('/insert')" class=" btn btn-success"
+          style="text-align: right;">
+          Insert
+        </button>
+        <button th:if="${isInserted}" type="submit" onclick="setAction('/update')" class="btn btn-warning"
+          style="text-align: right;">
+          Update
+        </button>
+      </div>
+    </div>
+
+    <table class="table table-bordered table-striped">
+      <thead>
+          <th:block th:each="column : ${columnNum}">
+            <td th:text=" 'Level ' + ${column}" style="text-align: center;"></td>
+          </th:block>
+          <td>Item</td>
+      </thead>
+      <tbody>
+        <th:block th:each="item : ${root}">
+          <tr>
+            <th:block th:each="column : ${columnNum}">
+              <td th:if="${column != item.level}"></td>
+              <td th:if="${column == item.level}">
+                <th:block>
+                  <span id="value" th:value="${item.uiCtrlName}" th:text="${item.uiCtrlName}"></span>
+                  <br>
+                  <span id="reference" th:text="${item.reference}" hidden></span>
+                  </span>
+                </th:block>
+              </td>
+            </th:block>
+            <td>
+              <input type="text" name="value" th:value="${item.value}" class="value-input" readonly>
+              <input type="checkbox" name="isUpdate" class="update-checkbox">
+            </td>
+          </tr>
+        </th:block>
+      </tbody>
+    </table>
+    <input type="hidden" id="allCheckboxData" name="isUpdateData">
+  </form>
+  <script>
+    function setAction(action) {
+      document.getElementById('dataForm').setAttribute('action', action);
+    }
+    const checkboxes = document.querySelectorAll('.update-checkbox');
+    checkboxes.forEach((checkbox) => {
+      checkbox.addEventListener('click', function () {
+        const input = this.closest('tr').querySelector('.value-input');
+        input.readOnly = !this.checked;
+      });
+    });
+    function prepareData() {
+      const checkboxes = document.querySelectorAll('.update-checkbox');
+      const allCheckboxData = [];
+      checkboxes.forEach((checkbox) => {
+        var item = false;
+        if (checkbox.checked) {
+          item = true;
+        }
+        allCheckboxData.push(item);
+      });
+
+      const allCheckboxDataInput = document.getElementById('allCheckboxData');
+      allCheckboxDataInput.value = allCheckboxData;
+    }
+    function radioHandler() {
+      var nameRadio = document.getElementById("name");
+      var ctrlCodeRadio = document.getElementById("ctrlCode");
+      var searchName = document.getElementById("searchName");
+      var searchCode = document.getElementById("searchCode");
+      if (nameRadio.checked) {
+        searchCode.hidden = false;
+        searchName.hidden = true; // Ẩn phần tử khi radio có giá trị "name"
+      } else if (ctrlCodeRadio.checked) {
+        searchCode.hidden = true;
+        searchName.hidden = false;
+      }
+    }
+    function handleKeyPress(event) {
+      if (event.keyCode === 13) {
+        filterRows();
+      }
+    }
+    function filterRows() {
+      const uiCtrlNameInput = document.getElementById('uiCtrlNameInput');
+      const filterValue = uiCtrlNameInput.value.toLowerCase().trim();
+      uiCtrlNameInput.value = '';
+      console.log(filterValue);
+      const trElements = document.querySelectorAll('tbody tr');
+      trElements.forEach((tr) => {
+        const nameSpan = tr.querySelector('#value');
+        const uiCtrlName = nameSpan.innerText.toLowerCase().trim();
+        if (filterValue === '') {
+          tr.style.display = '';
+          tr.querySelector("#reference").hidden = true;
+          nameSpan.style.fontWeight = '';
+        } else if (uiCtrlName.includes(filterValue)) {
+          tr.style.display = '';
+          tr.querySelector("#reference").hidden = false;
+          nameSpan.style.fontWeight = 'bold';
+        } else {
+          tr.style.display = 'none';
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>
